@@ -23,7 +23,7 @@
             </select>
             <div v-for="(currency, idx) in currencies" class="row space-between currency" v-bind:class="{divider: idx !== 0}">
                 <div v-if="market[currency]" class="row y-center">
-                    <div class="img-cont">
+                    <div class="img-cont" v-if="allCoins[currency]">
                         <img v-bind:src="'https://www.cryptocompare.com' + allCoins[currency].ImageUrl + '?width=100'">
                         <div v-on:click="removeCurrency(currency)" class="overlay">
                             <div class="text">Remove</div>
