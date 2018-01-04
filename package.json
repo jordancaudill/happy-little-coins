@@ -1,0 +1,28 @@
+{
+  "name": "happy-little-coins",
+  "version": "1.0.0",
+  "description": "happy-little-coins",
+  "main": "server.js",
+  "scripts": {
+    "dev": "npm-run-all --parallel livereload start",
+    "livereload": "livereload public",
+    "setup": "npm i nodemon npm-run-all -g",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jordancaudill/happy-little-coins.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jordancaudill/happy-little-coins/issues"
+  },
+  "homepage": "https://github.com/jordancaudill/happy-little-coins#readme",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "moment": "^2.20.1",
+    "socket.io": "^2.0.4"
+  }
+}
