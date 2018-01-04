@@ -20,8 +20,9 @@
   },
   "homepage": "https://github.com/jordancaudill/happy-little-coins#readme",
   "dependencies": {
-    "body-parser": "^1.18.2",
-    "express": "^4.16.2",
     "moment": "^2.20.1"
+  },
+  "devDependencies": {
+    "electron": "^1.7.10"
   }
 }

@@ -1,4 +1,4 @@
-
+const fs = require('fs');
 var app = new Vue({
     el: '#app',
     data: {
@@ -24,7 +24,7 @@ var app = new Vue({
         addCurrency: () => {
             if (app.currencies.indexOf(app.selected) === -1) {
                 app.currencies.push(app.selected);
-                app.getCurrentPrices();
+                app.getCurrentPrices(app);
                 app.updateData();
                 app.selected = '';
             }
@@ -41,7 +41,7 @@ var app = new Vue({
             transaction.roi = parseFloat(0);
             transaction.roiPercentage = parseFloat(0);
             app.transactions.unshift(transaction);
-            app.getROI(transaction);
+            app.getROI(transaction, app);
             app.newTransaction = {
                 date: null,
                 fromType: 'USD',
@@ -58,27 +58,25 @@ var app = new Vue({
         },
         removeTransaction: (idx) => {
             app.transactions.splice(idx, 1);
-            getROIs();
+            app.selectedTransaction = -1;
+            app.getROIs(app);
             app.updateData();
         },
         updateTransaction: (transaction) => {
             app.selectedTransaction = null;
-            getROIs();
+            app.getROIs(app);
             app.updateData();
         },
         updateData: () => {
-            app.sortTransactions();
+            // app.sortTransactions(app.transactions);
             var data = JSON.stringify({
                 transactions: app.transactions,
                 currencies: app.currencies
             });
-            fetch("/update", {
-                method: "POST",
-                body: data
-            });
+            fs.writeFile(__dirname + '/data.json', data);
         },
-        sortTransactions: () => {
-            app.transactions.sort((a, b) => {
+        sortTransactions: (transactions) => {
+            return transactions.sort((a, b) => {
                 return new Date(a.date) - new Date(b.date);
             });
         },
@@ -94,7 +92,7 @@ var app = new Vue({
             }
             return parseFloat(total);
         },
-        getROI: (transaction) => {
+        getROI: (transaction, app) => {
             var fromValue, toValue;
             if (transaction.fromType === 'USD') {
                 app.totalInvested += parseFloat(transaction.fromAmount);
@@ -120,7 +118,8 @@ var app = new Vue({
                 });
             }
         },
-        getCurrentPrices: () => {
+        getCurrentPrices: (app) => {
+            // var shitfuck = [];
             for (var i = 0; i < app.currencies.length; i++) {
                 getPrice();
                 function getPrice() {
@@ -132,7 +131,28 @@ var app = new Vue({
                         });
                 }
             }
+        },
+        getTransactedCurrencies: (transactions, transactedCurrencies) => {
+            for (var i = 0; i < transactions.length; i++) {
+                if (transactedCurrencies.indexOf(transactions[i].fromType) === -1) {
+                    transactedCurrencies.push(transactions[i].fromType);
+                }
+                if (transactedCurrencies.indexOf(transactions[i].toType) === -1) {
+                    transactedCurrencies.push(transactions[i].toType);
+                }
+            }
+            return transactedCurrencies;
+        },
+        getROIs: (app) => {
+            app.totalInvested = 0;
+            app.totalROI = 0;
+            for (var i = 0; i < app.transactions.length; i++) {
+                app.getROI(app.transactions[i], app);
+            }
         }
+
+
+
 
     },
     filters: {
@@ -157,18 +177,16 @@ var app = new Vue({
         },
     },
     created() {
-        fetch('data.json')
-            .then(response => response.json())
-            .then(json => {
-                app.transactions = json.transactions;
-                app.sortTransactions();                
-                getTransactedCurrencies();
-                getROIs();
-                setInterval(getROIs, 120000);
-                app.currencies = json.currencies;
-                app.getCurrentPrices();
-                setInterval(app.getCurrentPrices, 60000);
-            });
+        let json = JSON.parse(fs.readFileSync(__dirname + '/data.json', 'utf8'));
+        this.transactions = json.transactions;
+        this.transactions = this.sortTransactions(this.transactions);
+
+        this.transactedCurrencies = this.getTransactedCurrencies(this.transactions, this.transactedCurrencies);
+        this.getROIs(this);
+        setInterval(this.getROIs(this), 120000);
+        this.currencies = json.currencies;
+        this.getCurrentPrices(this);
+        setInterval(this.getCurrentPrices(this), 60000);
         fetch('https://min-api.cryptocompare.com/data/all/coinlist')
             .then(response => response.json())
             .then(json => {
@@ -176,22 +194,4 @@ var app = new Vue({
             });
     }
 });
-
-function getROIs() {
-    app.totalInvested = 0;
-    app.totalROI = 0;
-    for (var i = 0; i < app.transactions.length; i++) {
-        app.getROI(app.transactions[i]);
-    }
-}
-function getTransactedCurrencies() {
-    for (var i = 0; i < app.transactions.length; i++) {
-        if (app.transactedCurrencies.indexOf(app.transactions[i].fromType) === -1) {
-            app.transactedCurrencies.push(app.transactions[i].fromType);
-        }
-        if (app.transactedCurrencies.indexOf(app.transactions[i].toType) === -1) {
-            app.transactedCurrencies.push(app.transactions[i].toType);
-        }
-    }
-}
 

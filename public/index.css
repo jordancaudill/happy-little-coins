@@ -68,7 +68,7 @@ body {
 }
 
 .currency.divider {
-    border-top: solid 1px #f9f5ff46;
+    border-top: solid 1px #f9f5ff;
 }
 
 .space-between {
@@ -89,7 +89,7 @@ body {
 
 .my-currency {
     width: 25%;
-    border-left: solid 1px #f9f5ff46;
+    border-left: solid 1px #f9f5ff;
     padding-left: 20px;
 }
 
