@@ -119,7 +119,6 @@ var app = new Vue({
             }
         },
         getCurrentPrices: (app) => {
-            // var shitfuck = [];
             for (var i = 0; i < app.currencies.length; i++) {
                 getPrice();
                 function getPrice() {
