@@ -157,26 +157,27 @@
 
                 </div>
             </div>
-            <div v-if="filterCurrency === ''" class="row space-between">
-                <div>
-                </div>
-                <div class="column">
-                    <h3>
-                        Total Invested:
-                        <span>${{ totalInvested | commas}}</span>
-                    </h3>
-                    <h3>
-                        Total Value:
-                        <span>${{ totalInvested + totalROI | commas}}</span>
-                    </h3>
-                    <h3>
-                        Total ROI:
-                        <span v-bind:class="{ green: totalROI > 0, red: totalROI < 0}">${{ totalROI | commas}}</span>
-                    </h3>
-                </div>
-            </div>
 
         </div>
+        <div v-if="filterCurrency === '' || currentTab === 'dashboard'" class="row space-between">
+            <div>
+            </div>
+            <div class="column">
+                <h3>
+                    Total Invested:
+                    <span>${{ totalInvested | commas}}</span>
+                </h3>
+                <h3>
+                    Total Value:
+                    <span>${{ totalInvested + totalROI | commas}}</span>
+                </h3>
+                <h3>
+                    Total ROI:
+                    <span v-bind:class="{ green: totalROI > 0, red: totalROI < 0}">${{ totalROI | commas}}</span>
+                </h3>
+            </div>
+        </div>
+
     </div>
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
     <script src="node_modules/moment/min/moment.min.js"></script>
