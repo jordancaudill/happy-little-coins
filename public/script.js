@@ -40,7 +40,7 @@ var app = new Vue({
             transaction.toAmount = parseFloat(transaction.toAmount);
             transaction.roi = parseFloat(0);
             transaction.roiPercentage = parseFloat(0);
-            app.transactions.push(transaction);
+            app.transactions.unshift(transaction);
             app.getROI(transaction);
             app.newTransaction = {
                 date: null,
@@ -67,6 +67,7 @@ var app = new Vue({
             app.updateData();
         },
         updateData: () => {
+            app.sortTransactions();
             var data = JSON.stringify({
                 transactions: app.transactions,
                 currencies: app.currencies
@@ -74,6 +75,11 @@ var app = new Vue({
             fetch("/update", {
                 method: "POST",
                 body: data
+            });
+        },
+        sortTransactions: () => {
+            app.transactions.sort((a, b) => {
+                return new Date(a.date) - new Date(b.date);
             });
         },
         getMyCurrency: (type) => {
@@ -91,7 +97,7 @@ var app = new Vue({
         getROI: (transaction) => {
             var fromValue, toValue;
             if (transaction.fromType === 'USD') {
-                app.totalInvested += transaction.fromAmount;
+                app.totalInvested += parseFloat(transaction.fromAmount);
             }
             fetch('https://min-api.cryptocompare.com/data/price?&fsym=' + transaction.fromType + '&tsyms=USD')
                 .then(response => response.json())
@@ -109,7 +115,7 @@ var app = new Vue({
         },
         getFilteredTransactions: () => {
             if (app) {
-                return app.sortedTransactions.filter(function (transaction) {
+                return app.transactions.filter(function (transaction) {
                     return (transaction.fromType === app.filterCurrency || transaction.toType === app.filterCurrency || app.filterCurrency === '');
                 });
             }
@@ -126,15 +132,6 @@ var app = new Vue({
                         });
                 }
             }
-        }
-
-    },
-    computed: {
-        sortedTransactions: function () {
-            app.transactions.sort((a, b) => {
-                return !(new Date(a.date) - new Date(b.date));
-            });
-            return app.transactions;
         }
 
     },
@@ -164,6 +161,7 @@ var app = new Vue({
             .then(response => response.json())
             .then(json => {
                 app.transactions = json.transactions;
+                app.sortTransactions();                
                 getTransactedCurrencies();
                 getROIs();
                 setInterval(getROIs, 120000);

@@ -96,7 +96,7 @@
             </div>
 
             <div v-for="(transaction, idx) in getFilteredTransactions()" v-on:click="selectedTransaction = idx" class="transaction column"
-                v-bind:class="{ gray: idx % 2 === 0}">
+                v-bind:class="{ gray: idx % 2 === 0, editing: selectedTransaction === idx}">
                 <div class="row">
                     <p class="date">{{transaction.date}}</p>
                     <p>{{transaction.description}}</p>

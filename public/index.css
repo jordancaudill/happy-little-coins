@@ -182,7 +182,11 @@ h5 {
     background-color: #373f47;
 }
 
-.transaction:hover {
+.transaction.editing {
+    cursor: default;
+}
+
+.transaction:hover:not(.editing) {
     background-color: #50585f;
     transition: all .2;
     -webkit-transition: all .2s;
