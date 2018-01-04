@@ -21,51 +21,35 @@
                 <option disabled value="">More Currencies</option>
                 <option v-for="option in allCoins" v-bind:value="option.Symbol">{{option.Symbol}}</option>
             </select>
-            <div v-for="marketObj in market" class="row space-between currency">
-                <div class="row y-center">
+            <div v-for="(currency, idx) in currencies" class="row space-between currency" v-bind:class="{divider: idx !== 0}">
+                <div v-if="market[currency]" class="row y-center">
                     <div class="img-cont">
-                        <img v-bind:src="'https://www.cryptocompare.com' + marketObj.img+ '?width=100'">
-                        <div v-on:click="removeCurrency(marketObj.type)" class="overlay">
+                        <img v-bind:src="'https://www.cryptocompare.com' + allCoins[currency].ImageUrl + '?width=100'">
+                        <div v-on:click="removeCurrency(currency)" class="overlay">
                             <div class="text">Remove</div>
                         </div>
                     </div>
 
                     <div class="column center">
                         <h4>Current Market Value</h4>
-                        <h1>${{marketObj.currentPrice | commas}}</h1>
+                        <h1>${{market[currency].PRICE | commas}}</h1>
                         <div class="row space-between">
-                            <h6 v-bind:class="{ green: marketObj.diff1 > 0, red: marketObj.diff1 < 0 }">
-                                D
+                            <h6 v-bind:class="{ green: market[currency].CHANGEPCT24HOUR > 0, red: market[currency].CHANGEPCT24HOUR < 0 }">
+                                24h
                                 <span>
-                                    <span v-if="marketObj.diff1 > 0">&#9650;</span>
-                                    <span v-if="marketObj.diff1 < 0">&#9660;</span>
-                                    {{marketObj.diff1.toFixed(2)}}%
-                                </span>
-                            </h6>
-                            <h6 v-bind:class="{ green: marketObj.diff7 > 0, red: marketObj.diff7 < 0 }">
-                                W
-                                <span>
-                                    <span v-if="marketObj.diff7 > 0">&#9650;</span>
-                                    <span v-if="marketObj.diff7 < 0">&#9660;</span>
-                                    {{marketObj.diff7.toFixed(2)}}%
-                                </span>
-                            </h6>
-                            <h6 v-bind:class="{ green: marketObj.diff30 > 0, red: marketObj.diff30 < 0 }">
-                                M
-                                <span>
-                                    <span v-if="marketObj.diff30 > 0">&#9650;</span>
-                                    <span v-if="marketObj.diff30 < 0">&#9660;</span>
-                                    {{marketObj.diff30.toFixed(2)}}%
+                                    <span v-if="market[currency].CHANGEPCT24HOUR > 0">&#9650;</span>
+                                    <span v-if="market[currency].CHANGEPCT24HOUR < 0">&#9660;</span>
+                                    {{market[currency].CHANGEPCT24HOUR.toFixed(2)}}%
                                 </span>
                             </h6>
                         </div>
                     </div>
                 </div>
-                <div class="column center my-currency">
+                <div v-if="market[currency]" class="column center my-currency">
                     <h4>My Currency</h4>
                     <h3 class="yellow">
-                        <span>{{getMyCurrency(marketObj.type).toFixed(8)}}</span> {{marketObj.type}}</h3>
-                    <h5>${{(marketObj.currentPrice * getMyCurrency(marketObj.type)) | commas}}</h5>
+                        <span>{{getMyCurrency(currency).toFixed(8)}}</span> {{currency}}</h3>
+                    <h5>${{(market[currency].PRICE * getMyCurrency(currency)) | commas}}</h5>
                 </div>
             </div>
         </div>
@@ -84,7 +68,7 @@
                     <div class="row center">
                         <div class="column">
                             <input min="0" step="any" type="number" placeholder="From Amount" v-model="newTransaction.fromAmount">
-                            <select v-model="newTransaction.fromType">
+                            <select placeholder="From Type" v-model="newTransaction.fromType">
                                 <option value="USD">USD</option>
                                 <option v-for="option in allCoins" v-bind:value="option.Symbol">{{option.Symbol}}</option>
                             </select>
@@ -92,7 +76,7 @@
                         <h3 class="arrow">&#8594;</h3>
                         <div class="column">
                             <input min="0" step="any" type="number" placeholder="To Amount" v-model="newTransaction.toAmount">
-                            <select v-model="newTransaction.toType">
+                            <select selected="BTC" v-model="newTransaction.toType">
                                 <option value="USD">USD</option>
                                 <option v-for="option in allCoins" v-bind:value="option.Symbol">{{option.Symbol}}</option>
                             </select>
@@ -103,6 +87,7 @@
                     <div class="row space-between">
                         <input required type="date" v-model="newTransaction.date">
                         <div>
+                            <button class="delete-btn" v-on:click.stop="cancelNewTransaction()">Cancel</button>
                             <button class="save-btn" v-on:click.stop="addTransaction(newTransaction)">Save</button>
                         </div>
                     </div>
@@ -137,7 +122,7 @@
                         </h3>
                     </div>
                     <h5>Current ROI:
-                        <span v-bind:class="{ green: transaction.roi > 0, red: transaction.roi < 0}">${{transaction.roi | commas}}</span>
+                        <span v-bind:class="{ green: transaction.roi > 0, red: transaction.roi < 0}">${{transaction.roi | commas}} ({{transaction.roiPercentage.toFixed(2)}}%)</span>
                     </h5>
                 </div>
                 <!--edit-->
@@ -165,7 +150,6 @@
                         <input required type="date" v-model="transaction.date">
                         <div>
                             <button class="delete-btn" v-on:click.stop="removeTransaction(idx)">Delete</button>
-
                             <button class="save-btn" v-on:click.stop="updateTransaction(transaction)">Save</button>
 
                         </div>
@@ -195,7 +179,6 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-    <script src="node_modules/socket.io-client/dist/socket.io.js"></script>
     <script src="node_modules/moment/min/moment.min.js"></script>
     <script src="script.js"></script>
 

@@ -1,14 +1,8 @@
-var exchangeList = [
-    'Poloniex',
-    'Bitstamp',
-    'CoinBase',
-    'HitBTC'
-];
 
 var app = new Vue({
     el: '#app',
     data: {
-        market: [],
+        market: {},
         transactions: [],
         allCoins: {},
         currencies: [],
@@ -20,7 +14,9 @@ var app = new Vue({
         totalROI: 0,
         selectedTransaction: -1,
         newTransaction: {
-            date: null
+            date: null,
+            fromType: 'USD',
+            toType: 'BTC'
         },
         moment: moment
     },
@@ -28,9 +24,7 @@ var app = new Vue({
         addCurrency: () => {
             if (app.currencies.indexOf(app.selected) === -1) {
                 app.currencies.push(app.selected);
-                socket.emit('SubAdd', {
-                    subs: ['2~' + exchangeList[0] + '~' + app.selected + '~USD']
-                });
+                app.getCurrentPrices();
                 app.updateData();
                 app.selected = '';
             }
@@ -38,28 +32,38 @@ var app = new Vue({
         removeCurrency: (currency) => {
             var idx = app.currencies.indexOf(currency);
             app.currencies.splice(idx, 1);
-            for (var i = 0; i < app.market.length; i++) {
-                if (app.market[i].type === currency) {
-                    app.market.splice(i, 1);
-                    break;
-                }
-            }
+            delete app.market[currency];
             app.updateData();
         },
         addTransaction: (transaction) => {
+            transaction.fromAmount = parseFloat(transaction.fromAmount);
+            transaction.toAmount = parseFloat(transaction.toAmount);
+            transaction.roi = parseFloat(0);
+            transaction.roiPercentage = parseFloat(0);
             app.transactions.push(transaction);
+            app.getROI(transaction);
             app.newTransaction = {
-                date: null
+                date: null,
+                fromType: 'USD',
+                toType: 'BTC'
             };
             app.updateData();
         },
+        cancelNewTransaction: () => {
+            app.newTransaction = {
+                date: null,
+                fromType: 'USD',
+                toType: 'BTC'
+            };
+        },
         removeTransaction: (idx) => {
             app.transactions.splice(idx, 1);
+            getROIs();
             app.updateData();
         },
         updateTransaction: (transaction) => {
             app.selectedTransaction = null;
-            app.getROI(transaction);
+            getROIs();
             app.updateData();
         },
         updateData: () => {
@@ -82,19 +86,7 @@ var app = new Vue({
                     total -= app.transactions[i].fromAmount;
                 }
             }
-            return total;
-        },
-        getPercentDiff: (days, type, exchange) => {
-            fetch('https://min-api.cryptocompare.com/data/dayAvg?e=' + exchange + '&fsym=' + type + '&tsym=USD&toTs=' + (moment().unix() - (60 * 60 * 24 * days)))
-                .then(response => response.json())
-                .then(json => {
-                    for (var i = 0; i < app.market.length; i++) {
-                        if (app.market[i].type === type) {
-                            app.market[i]['diff' + days] = app.market[i].currentPrice / json.USD;
-                            break;
-                        }
-                    }
-                });
+            return parseFloat(total);
         },
         getROI: (transaction) => {
             var fromValue, toValue;
@@ -110,6 +102,7 @@ var app = new Vue({
                         .then(json => {
                             toValue = json.USD * transaction.toAmount;
                             transaction.roi = toValue - fromValue;
+                            transaction.roiPercentage = ((toValue - fromValue) / fromValue) * 100;
                             app.totalROI += transaction.roi;
                         });
                 });
@@ -120,7 +113,19 @@ var app = new Vue({
                     return (transaction.fromType === app.filterCurrency || transaction.toType === app.filterCurrency || app.filterCurrency === '');
                 });
             }
-
+        },
+        getCurrentPrices: () => {
+            for (var i = 0; i < app.currencies.length; i++) {
+                getPrice();
+                function getPrice() {
+                    var currency = app.currencies[i];
+                    fetch('https://min-api.cryptocompare.com/data/pricemultifull?&fsyms=' + currency + '&tsyms=USD')
+                        .then(response => response.json())
+                        .then(json => {
+                            app.$set(app.market, currency, json.RAW[currency].USD);
+                        });
+                }
+            }
         }
 
     },
@@ -160,25 +165,11 @@ var app = new Vue({
             .then(json => {
                 app.transactions = json.transactions;
                 getTransactedCurrencies();
-                setInterval(getROIs(), 120000);
+                getROIs();
+                setInterval(getROIs, 120000);
                 app.currencies = json.currencies;
-                var subs = [];
-                for (var i = 0; i < app.currencies.length; i++) {
-                    subs.push('2~' + exchangeList[0] + '~' + json.currencies[i] + '~USD');
-                }
-                socket.on('connect', function () {
-                    for (var k = 0; k < subs.length; k++) {
-                        function subscribe() {
-                            var p = subs[k];
-                            setTimeout(function () {
-                                socket.emit('SubAdd', {
-                                    subs: [p]
-                                });
-                            }, 600);
-                        }
-                        subscribe();
-                    }
-                });
+                app.getCurrentPrices();
+                setInterval(app.getCurrentPrices, 60000);
             });
         fetch('https://min-api.cryptocompare.com/data/all/coinlist')
             .then(response => response.json())
@@ -189,6 +180,8 @@ var app = new Vue({
 });
 
 function getROIs() {
+    app.totalInvested = 0;
+    app.totalROI = 0;
     for (var i = 0; i < app.transactions.length; i++) {
         app.getROI(app.transactions[i]);
     }
@@ -204,53 +197,3 @@ function getTransactedCurrencies() {
     }
 }
 
-var socket = io('wss://streamer.cryptocompare.com', {
-    transports: ['websocket']
-});
-
-socket.on('m', function (data) {
-    var dataArray = data.split('~');
-    if ((dataArray[0] === '1' || dataArray[0] === '2' || dataArray[0] === '4') && dataArray[4]) {
-        var idx = -1;
-        for (var i = 0; i < app.market.length; i++) {
-            if (app.market[i].type === dataArray[2]) {
-                idx = i;
-                break;
-            }
-        }
-        if (idx === -1) {
-            var marketObj = {
-                type: dataArray[2],
-                diff1: 0,
-                diff7: 0,
-                diff30: 0,
-                img: app.allCoins[dataArray[2]].ImageUrl
-            };
-        } else {
-            var marketObj = app.market[i];
-        }
-        marketObj.exchange = dataArray[1];
-        marketObj.currentPrice = dataArray[5];
-        if (idx === -1) {
-            app.market.push(marketObj)
-        }
-        console.log(dataArray)
-        // get % differences for day, week, and month
-        app.getPercentDiff(1, marketObj.type, marketObj.exchange);
-        app.getPercentDiff(7, marketObj.type, marketObj.exchange);
-        app.getPercentDiff(30, marketObj.type, marketObj.exchange);
-    } else if (!dataArray[4] && data.indexOf('LOADCOMPLETE') === -1) {
-        //try different exchange
-        for (var i = 0; i < exchangeList.length; i++) {
-            if (data.indexOf(exchangeList[i]) > -1) {
-                if (exchangeList[i + 1]) {
-                    socket.emit('SubAdd', {
-                        subs: [data.replace(exchangeList[i], exchangeList[i + 1])]
-                    });
-                }
-                break;
-            }
-        }
-
-    }
-});
