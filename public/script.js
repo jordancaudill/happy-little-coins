@@ -8,7 +8,7 @@ var app = new Vue({
         currencies: [],
         selected: '',
         filterCurrency: '',
-        currentTab: 'transactions',
+        currentTab: 'dashboard',
         transactedCurrencies: [],
         totalInvested: 0,
         totalROI: 0,
