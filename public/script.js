@@ -84,10 +84,10 @@ var app = new Vue({
             var total = 0;
             for (var i = 0; i < app.transactions.length; i++) {
                 if (app.transactions[i].toType === type) {
-                    total += app.transactions[i].toAmount;
+                    total += parseFloat(app.transactions[i].toAmount);
                 }
                 if (app.transactions[i].fromType === type) {
-                    total -= app.transactions[i].fromAmount;
+                    total -= (app.transactions[i].fromAmount);
                 }
             }
             return parseFloat(total);
@@ -182,10 +182,14 @@ var app = new Vue({
 
         this.transactedCurrencies = this.getTransactedCurrencies(this.transactions, this.transactedCurrencies);
         this.getROIs(this);
-        setInterval(this.getROIs(this), 120000);
+        setInterval(function () {
+            app.getROIs(app);
+        }, 120000);
         this.currencies = json.currencies;
         this.getCurrentPrices(this);
-        setInterval(this.getCurrentPrices(this), 60000);
+        setInterval(function () {
+            app.getCurrentPrices(app);
+        }, 120000);
         fetch('https://min-api.cryptocompare.com/data/all/coinlist')
             .then(response => response.json())
             .then(json => {
